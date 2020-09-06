@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #ifdef __SSSE3__
 #include <x86intrin.h>
@@ -12,10 +14,12 @@
 #define _GNU_SOURCE
 #endif
 #include <sys/syscall.h>
+#include <fcntl.h>
 #include <unistd.h>
 #endif
 
 #include "charm.h"
+#include "os.h"
 
 #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && \
     __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -328,9 +332,28 @@ void uc_memzero(void *buf, size_t len)
 void uc_randombytes_buf(void *buf, size_t len)
 {
 #ifdef __linux__
+#ifdef SYS_getrandom1
     if ((size_t) syscall(SYS_getrandom, buf, (int) len, 0) != len) {
         abort();
     }
+#else
+    /**
+     * If getrandom syscall is not avaiable, try to read from /dev/urandom
+     * device.
+     *
+     * 278 syscall is avaiable in AC86U, but not in AC68U. However,
+     * /dev/urandom is always avaiable.
+     */
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd == -1) {
+        fprintf(stderr, "error: unable to open /dev/urandom, %s", strerror(errno));
+        exit(1);
+    }
+    if (safe_read(fd, buf, len, 10) < 0) {
+        fprintf(stderr, "error: unable to read %ld bytes from /dev/urandom, %s", len, strerror(errno));
+        exit(1);
+    }
+#endif
 #else
     arc4random_buf(buf, len);
 #endif

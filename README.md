@@ -1,3 +1,8 @@
+This is a fork version, which is modified for ASUS Merlin.
+
+- https://github.com/RMerl/asuswrt-merlin.ng/wiki
+- https://github.com/jedisct1/dsvpn/issues/72
+
 # ![DSVPN](https://raw.github.com/jedisct1/dsvpn/master/logo.png)
 
 [![GitHub CI status](https://github.com/jedisct1/dsvpn/workflows/CI/badge.svg)](https://github.com/jedisct1/dsvpn/actions)
