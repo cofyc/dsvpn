@@ -263,7 +263,13 @@ static int tcp_accept(Context *context, int listen_fd)
 static int client_key_exchange(Context *context)
 {
     uint32_t st[12];
-    uint8_t  pkt1[32 + 8 + 32], pkt2[32 + 32];
+    /**
+     * 32 random bytes
+     * 8 bytes timestamp
+     * 4 bytes IPv4
+     * 32 hash
+     */
+    uint8_t  pkt1[32 + 8 + 4 + 32], pkt2[32 + 32];
     uint8_t  h[32];
     uint8_t  k[32];
     uint8_t  iv[16] = { 0 };
@@ -273,7 +279,13 @@ static int client_key_exchange(Context *context)
     uc_randombytes_buf(pkt1, 32);
     now = endian_swap64(time(NULL));
     memcpy(pkt1 + 32, &now, 8);
-    uc_hash(st, pkt1 + 32 + 8, pkt1, 32 + 8);
+    struct in_addr addr;
+    if (inet_pton(AF_INET, context->local_tun_ip, &addr) == 0) {
+        fprintf(stderr, "Invalid address\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(pkt1 + 32 + 8, &addr.s_addr, 4);
+    uc_hash(st, pkt1 + 32 + 8 + 4, pkt1, 32 + 8 + 4);
     if (safe_write(context->client_fd, pkt1, sizeof pkt1, TIMEOUT) != sizeof pkt1) {
         return -1;
     }
